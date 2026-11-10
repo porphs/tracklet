@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { useStore } from "./useStore";
 import { ConfirmDialog } from "./ConfirmDialog";
 import type { Task } from "../domain/types";
+import type { Deleted } from "../data/repository";
 
 interface Props {
   taskId: string;
   onClose: () => void;
-  onDeleted: (title: string) => void;
+  onDeleted: (title: string, deleted: Deleted) => void;
 }
 
 /** The shared details editor. Every edit saves immediately; there is no Save button. */
@@ -104,9 +105,9 @@ function TaskPanelInner({ task, onClose, onDeleted }: { task: Task } & Omit<Prop
           confirmLabel="Delete"
           onCancel={() => setConfirming(false)}
           onConfirm={() => {
-            store.mutate((r) => r.deleteTask(task.id));
+            const deleted = store.mutate((r) => r.deleteTask(task.id));
             setConfirming(false);
-            onDeleted(task.title);
+            onDeleted(task.title, deleted);
           }}
         />
       )}

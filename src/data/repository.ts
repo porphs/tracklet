@@ -154,6 +154,45 @@ export class Repository {
     return true;
   }
 
+  renameBoard(id: string, name: string): Board {
+    const clean = requireName(name, "Board name");
+    return this.sql.tx(() => {
+      if (!this.getBoard(id)) throw new ValidationError("Board not found.");
+      this.sql.run("UPDATE board SET name = ?, updated_at = ? WHERE id = ?", [clean, this.stamp(), id]);
+      return this.getBoard(id)!;
+    });
+  }
+
+  moveBoard(id: string, toIndex: number): void {
+    this.sql.tx(() => this.reorder("board", null, null, id, toIndex));
+  }
+
+  /** Deletes the board and everything on it (R4). Not undoable; covered by snapshots. */
+  deleteBoard(id: string): void {
+    this.sql.tx(() => {
+      const b = this.getBoard(id);
+      if (!b) throw new ValidationError("Board not found.");
+      this.sql.run("DELETE FROM board WHERE id = ?", [id]);
+      this.sql.run("UPDATE board SET position = position - 1 WHERE position > ?", [b.position]);
+    });
+  }
+
+  /**
+   * Moves row `id` to `toIndex` among rows sharing `scopeCol = scopeVal` (or the whole table),
+   * then rewrites positions 0..n-1 (R6). Index is clamped.
+   */
+  private reorder(table: "board" | "board_column", scopeCol: string | null, scopeVal: string | null, id: string, toIndex: number): void {
+    const where = scopeCol ? `WHERE ${scopeCol} = ?` : "";
+    const ids = this.sql
+      .all<{ id: string }>(`SELECT id FROM ${table} ${where} ORDER BY position`, scopeCol ? [scopeVal] : [])
+      .map((r) => r.id);
+    const from = ids.indexOf(id);
+    if (from < 0) throw new ValidationError("Not found.");
+    ids.splice(from, 1);
+    ids.splice(Math.max(0, Math.min(Math.trunc(toIndex), ids.length)), 0, id);
+    ids.forEach((rowId, i) => this.sql.run(`UPDATE ${table} SET position = ? WHERE id = ?`, [i, rowId]));
+  }
+
   // ---------- columns ----------
 
   listColumns(boardId: string): Column[] {
@@ -165,6 +204,62 @@ export class Repository {
   getColumn(id: string): Column | undefined {
     const r = this.sql.get<Row>("SELECT * FROM board_column WHERE id = ?", [id]);
     return r && toColumn(r);
+  }
+
+  addColumn(boardId: string, name: string): Column {
+    const clean = requireName(name, "Column name");
+    return this.sql.tx(() => {
+      if (!this.getBoard(boardId)) throw new ValidationError("Board not found.");
+      const id = this.newId();
+      const position = this.sql.get<{ n: number }>("SELECT COUNT(*) AS n FROM board_column WHERE board_id = ?", [
+        boardId,
+      ])!.n;
+      this.sql.run(
+        "INSERT INTO board_column (id, board_id, name, position, is_done_column) VALUES (?, ?, ?, ?, 0)",
+        [id, boardId, clean, position],
+      );
+      return this.getColumn(id)!;
+    });
+  }
+
+  renameColumn(id: string, name: string): Column {
+    const clean = requireName(name, "Column name");
+    return this.sql.tx(() => {
+      if (!this.getColumn(id)) throw new ValidationError("Column not found.");
+      this.sql.run("UPDATE board_column SET name = ? WHERE id = ?", [clean, id]);
+      return this.getColumn(id)!;
+    });
+  }
+
+  setDoneColumn(id: string, isDone: boolean): Column {
+    return this.sql.tx(() => {
+      if (!this.getColumn(id)) throw new ValidationError("Column not found.");
+      this.sql.run("UPDATE board_column SET is_done_column = ? WHERE id = ?", [isDone ? 1 : 0, id]);
+      return this.getColumn(id)!;
+    });
+  }
+
+  moveColumn(id: string, toIndex: number): void {
+    this.sql.tx(() => {
+      const col = this.getColumn(id);
+      if (!col) throw new ValidationError("Column not found.");
+      this.reorder("board_column", "board_id", col.boardId, id, toIndex);
+    });
+  }
+
+  /** R5: only an empty column can be deleted. */
+  deleteColumn(id: string): void {
+    this.sql.tx(() => {
+      const col = this.getColumn(id);
+      if (!col) throw new ValidationError("Column not found.");
+      const n = this.sql.get<{ n: number }>("SELECT COUNT(*) AS n FROM task WHERE column_id = ?", [id])!.n;
+      if (n > 0) throw new ValidationError(`Move the ${n} task${n === 1 ? "" : "s"} out of “${col.name}” first.`);
+      this.sql.run("DELETE FROM board_column WHERE id = ?", [id]);
+      this.sql.run("UPDATE board_column SET position = position - 1 WHERE board_id = ? AND position > ?", [
+        col.boardId,
+        col.position,
+      ]);
+    });
   }
 
   // ---------- tasks ----------
