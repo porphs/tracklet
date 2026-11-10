@@ -7,6 +7,7 @@ import { bootStore } from "./app/store";
 import { browserPersistence, isTauri, memoryPersistence, tauriPersistence } from "./storage/persistence";
 import { StoreContext } from "./ui/useStore";
 import { App } from "./ui/App";
+import { rememberWindowBounds } from "./app/windowState";
 
 async function main() {
   const root = createRoot(document.getElementById("root")!);
@@ -18,7 +19,8 @@ async function main() {
         ? memoryPersistence()
         : browserPersistence();
     const store = await bootStore(persistence, { sqlConfig: { locateFile: () => wasmUrl } });
-    (window as any).__tracklet = store; // for debugging in the dev preview
+    if (!isTauri()) (window as any).__tracklet = store; // for debugging in the dev preview only
+    else rememberWindowBounds(store).catch((e) => console.warn("window bounds:", e));
     root.render(
       <StrictMode>
         <StoreContext.Provider value={store}>
