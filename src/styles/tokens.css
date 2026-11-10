@@ -2,54 +2,127 @@
  * Every colour, size and spacing value in the app is defined here, and only here.
  * Components use these variables only. A redesign starts by editing this file.
  */
+
+/* Anuphan (SIL OFL 1.1, see fonts/OFL.txt), bundled so the app stays fully offline.
+   Latin glyphs only; Thai text falls back to the system Thai font. */
+@font-face {
+  font-family: "Anuphan";
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: swap;
+  src: url("./fonts/anuphan-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
-  --font: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
-  --font-size: 13px;
-  --font-size-small: 11px;
-  --font-size-title: 17px;
+  --font: "Anuphan", "Noto Sans Thai", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --font-size: 14px;
+  --font-size-small: 13px;
+  --font-size-tiny: 12px;
+  --font-size-chip: 12.5px;
+  --font-size-input: 15px;
+  --font-size-card: 15px;
+  --font-size-panel-title: 17px;
+  --font-size-title: 22px;
+  --font-size-brand: 19px;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
 
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
+  --space-5: 24px;
 
-  --radius: 4px;
+  --radius-sm: 8px;
+  --radius: 10px;
+  --radius-card: 12px;
+  --radius-segment: 12px;
+  --radius-segment-inner: 9px;
+  --radius-column: 16px;
+  --radius-dialog: 20px;
+  --radius-pill: 999px;
   --border: 1px solid var(--color-border);
 
+  /* Neutrals */
   --color-bg: #ffffff;
-  --color-surface: #f3f3f3;
+  --color-sidebar: #f5f7f8;
+  --color-surface: #f2f5f6;        /* columns */
+  --color-subtle: #f5f7f8;         /* table headers, other-month days */
+  --color-control: #edf1f3;        /* soft buttons, segmented controls */
+  --color-control-hover: #e3e8eb;
+  --color-input: #f8fafb;
+  --color-input-border: #e1e6ea;
   --color-card: #ffffff;
-  --color-border: #d0d0d0;
-  --color-text: #1a1a1a;
-  --color-muted: #6b6b6b;
-  --color-accent: #2f5fd0;
-  --color-selected: #dfe8fb;
-  --color-error: #b00020;
-  --color-backdrop: rgba(0, 0, 0, 0.3);
+  --color-card-done: #f8fafb;
+  --color-card-border: #e6eaed;
+  --color-border: #e4e8eb;
+  --color-dashed: #c9d1d6;
+  --color-text: #1b2329;
+  --color-muted: #5b6670;
+  --color-faint: #8b949c;
+  --color-done-text: #76808a;
+  --color-backdrop: rgba(20, 20, 24, 0.32);
+  --color-toast: #1b2329;
+  --color-toast-text: #ffffff;
+
+  /* Accent (teal) */
+  --color-accent: #0b7285;
+  --color-accent-hover: #075563;
+  --color-accent-text: #ffffff;
+  --color-logo: #0e8f9c;
+  --color-selected: #e0f2f4;
+  --color-today-bg: #f0f9fa;
+
+  /* Danger */
+  --color-error: #c0262d;
+  --color-danger-bg: #fdeceb;
 
   /* Deadline status (always paired with a text badge, never colour alone) */
-  --color-overdue: #c62828;
-  --color-overdue-bg: #fdecea;
-  --color-near: #b26a00;
-  --color-near-bg: #fff4e0;
-  --done-opacity: 0.5;
+  --color-overdue: #b42318;
+  --color-overdue-bg: #fee9e7;
+  --color-overdue-mark: #e5484d;   /* card stripe */
+  --color-overdue-dot: #d32f2f;    /* timeline marks */
+  --color-near: #8a4b00;
+  --color-near-bg: #fff1d9;
+  --color-near-mark: #e39a2d;      /* card stripe, timeline marks */
+  --color-near-bar: #f6cf8f;
+  --done-opacity: 0.55;
 
-  /* Label palette: the 8 fixed colours */
-  --label-red: #e57373;
-  --label-orange: #ffb74d;
-  --label-yellow: #fff176;
-  --label-green: #81c784;
-  --label-teal: #4db6ac;
-  --label-blue: #64b5f6;
-  --label-purple: #ba68c8;
-  --label-gray: #bdbdbd;
+  /* Label palette: the 8 fixed colours, as soft pills (background / text) */
+  --label-red-bg: #fde2e1;     --label-red-fg: #9a1c16;
+  --label-orange-bg: #ffe9c4;  --label-orange-fg: #7a4400;
+  --label-yellow-bg: #fbf1bf;  --label-yellow-fg: #6b5400;
+  --label-green-bg: #dcf3e3;   --label-green-fg: #1a6a35;
+  --label-teal-bg: #d5f0ee;    --label-teal-fg: #0f5f5a;
+  --label-blue-bg: #dde9fb;    --label-blue-fg: #1f4e94;
+  --label-purple-bg: #efe2fb;  --label-purple-fg: #6a2a92;
+  --label-gray-bg: #e8ecef;    --label-gray-fg: #47515a;
 
-  --sidebar-width: 200px;
+  /* Milestone diamond */
+  --color-milestone: #1c1c1e;
+  --color-milestone-muted: #6b6e73;
+  --color-milestone-reached: #8a8d92;
+
+  /* Layout */
+  --sidebar-width: 220px;
   --panel-width: 340px;
-  --column-width: 260px;
-  --timeline-label-width: 240px; /* keep in sync with LABEL_WIDTH in TimelineView.tsx */
-  --timeline-row-height: 26px;
-  --color-today: #2f5fd0;
-  --color-bar: #9fb6e8;
-  --color-grid: #ececec;
+  --column-width: 272px;
+  --cal-day-min-height: 128px;
+  --timeline-label-width: 280px; /* keep in sync with LABEL_WIDTH in TimelineView.tsx */
+  --timeline-row-height: 36px;
+
+  /* Calendar items */
+  --color-cal-item: #e9f5f7;
+  --color-cal-item-done: #f1f4f5;
+
+  /* Timeline */
+  --color-today: #0b7285;
+  --color-bar: #5fb9c6;
+  --color-bar-done: #cfe6ea;
+  --color-tick-done: #9aa5ad;
+  --color-grid: #e6e7e9;
 }

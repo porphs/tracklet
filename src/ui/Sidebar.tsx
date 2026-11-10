@@ -38,6 +38,15 @@ export function Sidebar({ activeBoardId, onSelect, onOpenSettings, onImported }:
 
   return (
     <nav className="sidebar" aria-label="Boards">
+      <div className="brand">
+        <svg className="brand-logo" width="30" height="30" viewBox="0 0 30 30" aria-hidden="true">
+          <rect className="logo-bg" width="30" height="30" rx="9" />
+          <rect className="logo-mark" x="7" y="8" width="10" height="4" rx="2" />
+          <rect className="logo-mark" x="19" y="8" width="4" height="4" rx="2" opacity="0.45" />
+          <rect className="logo-mark" x="13" y="8" width="4" height="15" rx="2" />
+        </svg>
+        <span className="brand-name">tracklet</span>
+      </div>
       <div className="sidebar-section">
         <div className="sidebar-heading">Boards</div>
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>

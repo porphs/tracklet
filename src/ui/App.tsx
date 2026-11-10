@@ -167,42 +167,43 @@ export function App() {
                   {" · "}
                   <span className={counts.near ? "status-near" : ""}>{counts.near} due soon</span>
                 </span>
-                <div className="header-spacer" />
-                {view !== "board" && (
-                  <div className="scope" role="radiogroup" aria-label="Scope">
-                    {(["board", "all"] as const).map((s) => (
-                      <button
-                        key={s}
-                        role="radio"
-                        aria-checked={scope === s}
-                        className={`tab${scope === s ? " active" : ""}`}
-                        onClick={() => setScope(s)}
-                      >
-                        {s === "board" ? "This board" : "All boards"}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                <label className="row">
-                  <span className="muted">Label</span>
-                  <select
-                    aria-label="Filter by label"
-                    value={labelFilter ?? ""}
-                    onChange={(e) => setLabelFilter(e.target.value || null)}
-                  >
-                    <option value="">All tasks</option>
-                    {filterNames.map((n) => (
-                      <option key={n} value={n}>
-                        {n}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button onClick={() => setPanel({ kind: "milestones" })}>Milestones</button>
-                <button onClick={() => setPanel({ kind: "labels" })}>Labels</button>
-                <button className="link-button danger" onClick={() => setConfirmDeleteBoard(true)}>
-                  Delete board
-                </button>
+                <div className="header-actions">
+                  {view !== "board" && (
+                    <div className="scope" role="radiogroup" aria-label="Scope">
+                      {(["board", "all"] as const).map((s) => (
+                        <button
+                          key={s}
+                          role="radio"
+                          aria-checked={scope === s}
+                          className={`tab${scope === s ? " active" : ""}`}
+                          onClick={() => setScope(s)}
+                        >
+                          {s === "board" ? "This board" : "All boards"}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <label className="row">
+                    <span className="muted">Label</span>
+                    <select
+                      aria-label="Filter by label"
+                      value={labelFilter ?? ""}
+                      onChange={(e) => setLabelFilter(e.target.value || null)}
+                    >
+                      <option value="">All tasks</option>
+                      {filterNames.map((n) => (
+                        <option key={n} value={n}>
+                          {n}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button onClick={() => setPanel({ kind: "milestones" })}>Milestones</button>
+                  <button onClick={() => setPanel({ kind: "labels" })}>Labels</button>
+                  <button className="link-button danger" onClick={() => setConfirmDeleteBoard(true)}>
+                    Delete board
+                  </button>
+                </div>
               </header>
               <div className="content">
                 {view === "board" && (

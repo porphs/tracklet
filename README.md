@@ -135,6 +135,7 @@ src/storage/   sql.js wrapper, migrations, persistence (Tauri file / browser / m
 src/app/       store (change → save), snapshots, window size memory
 src/ui/        React components
 src/styles/    tokens.css (every colour/size) + app.css (layout); restyle here
+src/styles/fonts/  Anuphan (latin subset, SIL OFL), bundled so the app needs no network
 src-tauri/     the native shell: a few std-only file commands, nothing else
 ```
 

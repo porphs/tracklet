@@ -25,7 +25,7 @@ interface Props {
   onOpenMilestone: (id: string) => void;
 }
 
-const LABEL_WIDTH = 240; // keep in sync with --timeline-label-width in tokens.css
+const LABEL_WIDTH = 280; // keep in sync with --timeline-label-width in tokens.css
 const ZOOMS: Zoom[] = ["day", "week", "month"];
 
 /** Gantt-style view. Read-only drawing; click anything to edit it in the panel. */
