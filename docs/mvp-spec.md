@@ -113,7 +113,7 @@ Features: a month grid starting Monday; task deadlines and milestones (◆) on t
 
 ### Slice 5: Timeline view  **[STOP for manual testing after this slice]**
 
-Features: a left task list plus a date grid; rows grouped by milestone (milestones by date, then "No milestone"), and in All-boards scope by board first; each milestone diamond on its group header; tasks sorted by start date, then deadline; a start→end bar, a deadline tick after the end, and a marker for a deadline-only task; tasks with no dates are hidden; a today line; Day / Week / Month zoom; a Today button; status colours, with done tasks faded; click a bar, marker or diamond to open the editor; scope toggle and label filter. No dragging.
+Features: a left task list plus a date grid; a task with only one planned date (start or end) draws a one-day bar on that date; rows grouped by milestone (milestones by date, then "No milestone"), and in All-boards scope by board first; each milestone diamond on its group header; tasks sorted by start date, then deadline; a start→end bar, a deadline tick after the end, and a marker for a deadline-only task; tasks with no dates are hidden; a today line; Day / Week / Month zoom; a Today button; status colours, with done tasks faded; click a bar, marker or diamond to open the editor; scope toggle and label filter. No dragging.
 
 - AC5.1 [unit] The row-building function groups and sorts tasks as described and leaves out tasks with no dates.
 - AC5.2 [unit] The date→x mapping is correct at each zoom level. A bar's start x and width match its start and end (inclusive of the end day).

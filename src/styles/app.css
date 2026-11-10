@@ -114,3 +114,32 @@ h2 { font-size: var(--font-size); margin: 0; }
 .status-near .cal-badge { color: var(--color-near); }
 .cal-more { font-size: var(--font-size-small); }
 .scope { display: flex; gap: var(--space-1); }
+
+/* Timeline */
+.tl-scroller { overflow: auto; border: var(--border); max-height: calc(100vh - 160px); }
+.tl-inner { position: relative; }
+.tl-row { display: flex; height: var(--timeline-row-height); border-bottom: 1px solid var(--color-grid); }
+.tl-label { position: sticky; left: 0; z-index: 2; width: var(--timeline-label-width); flex-shrink: 0; background: var(--color-bg); border: none; border-right: var(--border); text-align: left; padding: 0 var(--space-2); font-size: var(--font-size-small); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: var(--timeline-row-height); }
+.tl-label.status-overdue { border-left: 4px solid var(--color-overdue); }
+.tl-label.status-near { border-left: 4px solid var(--color-near); }
+.tl-label.done { color: var(--color-muted); }
+.tl-track { position: relative; flex-shrink: 0; }
+.tl-header { position: sticky; top: 0; z-index: 3; background: var(--color-surface); }
+.tl-header .tl-label { background: var(--color-surface); }
+.tl-tick { position: absolute; top: 0; height: 100%; border-left: 1px solid var(--color-border); padding-left: 2px; font-size: var(--font-size-small); color: var(--color-muted); white-space: nowrap; line-height: var(--timeline-row-height); }
+.tl-board .tl-label { font-weight: bold; background: var(--color-surface); }
+.tl-board { background: var(--color-surface); }
+.tl-group-header .tl-label { font-weight: bold; }
+.tl-milestone-label.done { text-decoration: line-through; }
+.tl-bar { position: absolute; top: 5px; height: calc(var(--timeline-row-height) - 10px); background: var(--color-bar); border: 1px solid var(--color-accent); border-radius: var(--radius); padding: 0; }
+.tl-bar.status-overdue { background: var(--color-overdue-bg); border-color: var(--color-overdue); }
+.tl-bar.status-near { background: var(--color-near-bg); border-color: var(--color-near); }
+.tl-bar.done, .tl-deadline.done, .tl-diamond.done { opacity: var(--done-opacity); }
+.tl-deadline { position: absolute; z-index: 1; top: 3px; width: 4px; margin-left: -2px; height: calc(var(--timeline-row-height) - 6px); background: var(--color-text); border: none; padding: 0; }
+.tl-deadline.solo { width: 10px; margin-left: -5px; border-radius: 50%; height: 10px; top: 8px; }
+.tl-deadline.status-overdue { background: var(--color-overdue); }
+.tl-deadline.status-near { background: var(--color-near); }
+.tl-diamond { position: absolute; top: 6px; width: 12px; height: 12px; margin-left: -6px; transform: rotate(45deg); background: var(--color-text); border: none; padding: 0; }
+.tl-diamond.status-overdue { background: var(--color-overdue); }
+.tl-diamond.status-near { background: var(--color-near); }
+.tl-today { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--color-today); z-index: 1; pointer-events: none; }

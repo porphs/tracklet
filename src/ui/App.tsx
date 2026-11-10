@@ -14,6 +14,7 @@ import type { View } from "../domain/types";
 import { countStatuses } from "../domain/deadline";
 import { labelNames } from "../domain/filter";
 import { CalendarView, type Scope } from "./CalendarView";
+import { TimelineView } from "./TimelineView";
 
 const VIEWS: { id: View; label: string }[] = [
   { id: "board", label: "Board" },
@@ -207,7 +208,15 @@ export function App() {
                     labelFilter={labelFilter}
                   />
                 )}
-                {view === "timeline" && <p className="muted">Timeline view arrives in slice 5.</p>}
+                {view === "timeline" && (
+                  <TimelineView
+                    boardId={board.id}
+                    scope={scope}
+                    labelFilter={labelFilter}
+                    onOpenTask={openTask}
+                    onOpenMilestone={(id) => setPanel({ kind: "milestone", id })}
+                  />
+                )}
                 {view === "calendar" && (
                   <CalendarView
                     boardId={board.id}

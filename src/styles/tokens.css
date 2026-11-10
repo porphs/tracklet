@@ -47,4 +47,9 @@
   --sidebar-width: 200px;
   --panel-width: 340px;
   --column-width: 260px;
+  --timeline-label-width: 240px; /* keep in sync with LABEL_WIDTH in TimelineView.tsx */
+  --timeline-row-height: 26px;
+  --color-today: #2f5fd0;
+  --color-bar: #9fb6e8;
+  --color-grid: #ececec;
 }
