@@ -1,0 +1,46 @@
+/* Plain, minimal layout. Values come from tokens.css only. */
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body { font-family: var(--font); font-size: var(--font-size); color: var(--color-text); background: var(--color-bg); }
+button, input, textarea, select { font: inherit; }
+button { cursor: pointer; }
+h1 { font-size: var(--font-size-title); margin: 0; }
+h2 { font-size: var(--font-size); margin: 0; }
+
+.app { display: flex; height: 100%; }
+.sidebar { width: var(--sidebar-width); flex-shrink: 0; border-right: var(--border); background: var(--color-surface); padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); overflow-y: auto; }
+.sidebar-section { display: flex; flex-direction: column; gap: var(--space-1); }
+.sidebar-heading { font-size: var(--font-size-small); color: var(--color-muted); text-transform: uppercase; }
+.board-link { text-align: left; background: none; border: none; padding: var(--space-1) var(--space-2); border-radius: var(--radius); }
+.board-link.active { background: var(--color-selected); }
+.sidebar-footer { margin-top: auto; display: flex; flex-direction: column; gap: var(--space-1); }
+
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.header { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-bottom: var(--border); }
+.content { flex: 1; overflow: auto; padding: var(--space-4); }
+
+.columns { display: flex; gap: var(--space-3); align-items: flex-start; }
+.column { width: var(--column-width); flex-shrink: 0; background: var(--color-surface); border-radius: var(--radius); padding: var(--space-2); display: flex; flex-direction: column; gap: var(--space-2); }
+.column-header { display: flex; justify-content: space-between; align-items: center; padding: var(--space-1); }
+.card { background: var(--color-card); border: var(--border); border-radius: var(--radius); padding: var(--space-2); text-align: left; width: 100%; }
+.card.selected { outline: 2px solid var(--color-accent); }
+.card.done { opacity: var(--done-opacity); }
+.add-task input { width: 100%; padding: var(--space-1) var(--space-2); }
+
+.panel { width: var(--panel-width); flex-shrink: 0; border-left: var(--border); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); overflow-y: auto; }
+.panel-header { display: flex; justify-content: space-between; align-items: center; }
+.field { display: flex; flex-direction: column; gap: var(--space-1); }
+.field > span { font-size: var(--font-size-small); color: var(--color-muted); }
+.field input, .field textarea, .field select { padding: var(--space-1) var(--space-2); border: var(--border); border-radius: var(--radius); }
+.field textarea { min-height: 120px; resize: vertical; }
+.error { color: var(--color-error); font-size: var(--font-size-small); }
+.muted { color: var(--color-muted); font-size: var(--font-size-small); }
+.danger { color: var(--color-error); }
+
+.fatal { padding: var(--space-4); max-width: 640px; }
+.save-error { background: var(--color-overdue-bg); color: var(--color-overdue); padding: var(--space-2) var(--space-4); }
+
+.dialog-backdrop { position: fixed; inset: 0; background: var(--color-backdrop); display: flex; align-items: center; justify-content: center; }
+.dialog { background: var(--color-bg); border-radius: var(--radius); padding: var(--space-4); width: 380px; display: flex; flex-direction: column; gap: var(--space-3); }
+.dialog p { margin: 0; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: var(--space-2); }

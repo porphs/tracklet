@@ -1,0 +1,50 @@
+/*
+ * Every colour, size and spacing value in the app is defined here, and only here.
+ * Components use these variables only. A redesign starts by editing this file.
+ */
+:root {
+  --font: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  --font-size: 13px;
+  --font-size-small: 11px;
+  --font-size-title: 17px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+
+  --radius: 4px;
+  --border: 1px solid var(--color-border);
+
+  --color-bg: #ffffff;
+  --color-surface: #f3f3f3;
+  --color-card: #ffffff;
+  --color-border: #d0d0d0;
+  --color-text: #1a1a1a;
+  --color-muted: #6b6b6b;
+  --color-accent: #2f5fd0;
+  --color-selected: #dfe8fb;
+  --color-error: #b00020;
+  --color-backdrop: rgba(0, 0, 0, 0.3);
+
+  /* Deadline status (always paired with a text badge, never colour alone) */
+  --color-overdue: #c62828;
+  --color-overdue-bg: #fdecea;
+  --color-near: #b26a00;
+  --color-near-bg: #fff4e0;
+  --done-opacity: 0.5;
+
+  /* Label palette: the 8 fixed colours */
+  --label-red: #e57373;
+  --label-orange: #ffb74d;
+  --label-yellow: #fff176;
+  --label-green: #81c784;
+  --label-teal: #4db6ac;
+  --label-blue: #64b5f6;
+  --label-purple: #ba68c8;
+  --label-gray: #bdbdbd;
+
+  --sidebar-width: 200px;
+  --panel-width: 340px;
+  --column-width: 260px;
+}
