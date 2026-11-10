@@ -5,8 +5,14 @@ import { BoardView } from "./BoardView";
 import { TaskPanel } from "./TaskPanel";
 import { Sidebar } from "./Sidebar";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { MilestonePanel, MilestonesPanel } from "./MilestonePanels";
+import { LabelsPanel } from "./LabelsPanel";
+import { SettingsPanel } from "./SettingsPanel";
+import type { PanelState } from "./panels";
 import type { Deleted } from "../data/repository";
 import type { View } from "../domain/types";
+import { countStatuses } from "../domain/deadline";
+import { labelNames } from "../domain/filter";
 
 const VIEWS: { id: View; label: string }[] = [
   { id: "board", label: "Board" },
@@ -18,13 +24,15 @@ const UNDO_MS = 10_000;
 
 export function App() {
   const store = useStore();
-  const boards = store.repo.listBoards();
-  const [boardId, setBoardId] = useState<string | undefined>(() => store.repo.getSetting("last_board_id"));
+  const repo = store.repo;
+  const boards = repo.listBoards();
+  const [boardId, setBoardId] = useState<string | undefined>(() => repo.getSetting("last_board_id"));
   const [view, setView] = useState<View>(() => {
-    const v = store.repo.getSetting("last_view");
+    const v = repo.getSetting("last_view");
     return VIEWS.some((x) => x.id === v) ? (v as View) : "board";
   });
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [panel, setPanel] = useState<PanelState>(null);
+  const [labelFilter, setLabelFilter] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [undo, setUndo] = useState<{ message: string; deleted: Deleted } | null>(null);
   const [confirmDeleteBoard, setConfirmDeleteBoard] = useState(false);
@@ -58,11 +66,32 @@ export function App() {
     };
   }, []);
 
-  const closePanel = useCallback(() => setSelectedTaskId(null), []);
+  const closePanel = useCallback(() => setPanel(null), []);
+  const openTask = useCallback((id: string) => setPanel({ kind: "task", id }), []);
+
+  // "Today" is re-checked every minute and when the window regains focus, so statuses
+  // update when the date rolls over without a restart (spec §2).
+  useEffect(() => {
+    let last = store.today();
+    const check = () => {
+      const now = store.today();
+      if (now !== last) {
+        last = now;
+        store.refresh();
+      }
+    };
+    const timer = window.setInterval(check, 60_000);
+    window.addEventListener("focus", check);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", check);
+    };
+  }, [store]);
 
   const selectBoard = (id: string) => {
     setBoardId(id);
-    setSelectedTaskId(null);
+    setPanel(null);
+    setLabelFilter(null); // the filter clears when switching boards
     store.mutate((r) => r.setSetting("last_board_id", id));
   };
 
@@ -71,15 +100,33 @@ export function App() {
     store.mutate((r) => r.setSetting("last_view", v));
   };
 
-  // A deleted task's panel closes by itself.
+  // A panel whose subject was deleted closes by itself.
   useEffect(() => {
-    if (selectedTaskId && !store.repo.getTask(selectedTaskId)) setSelectedTaskId(null);
+    if (panel?.kind === "task" && !repo.getTask(panel.id)) setPanel(null);
+    if (panel?.kind === "milestone" && !repo.getMilestone(panel.id)) setPanel({ kind: "milestones" });
   });
+
+  const counts = board
+    ? countStatuses(
+        (() => {
+          const done = repo.doneColumnIds();
+          return repo.listTasks(board.id).map((task) => ({ task, done: done.has(task.columnId) }));
+        })(),
+        repo.listMilestones(board.id),
+        store.today(),
+        repo.nearWindow(),
+      )
+    : { overdue: 0, near: 0 };
+  const filterNames = board ? labelNames(repo.listLabels(board.id)) : [];
 
   return (
     <NoticeContext.Provider value={notices}>
       <div className="app">
-        <Sidebar activeBoardId={board?.id} onSelect={selectBoard} />
+        <Sidebar
+          activeBoardId={board?.id}
+          onSelect={selectBoard}
+          onOpenSettings={() => setPanel({ kind: "settings" })}
+        />
 
         <main className="main">
           {store.lastSaveError && (
@@ -104,14 +151,41 @@ export function App() {
                     </button>
                   ))}
                 </div>
+                <span className="counts" aria-label="Deadline counts">
+                  <span className={counts.overdue ? "status-overdue" : ""}>{counts.overdue} overdue</span>
+                  {" · "}
+                  <span className={counts.near ? "status-near" : ""}>{counts.near} due soon</span>
+                </span>
                 <div className="header-spacer" />
+                <label className="row">
+                  <span className="muted">Label</span>
+                  <select
+                    aria-label="Filter by label"
+                    value={labelFilter ?? ""}
+                    onChange={(e) => setLabelFilter(e.target.value || null)}
+                  >
+                    <option value="">All tasks</option>
+                    {filterNames.map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button onClick={() => setPanel({ kind: "milestones" })}>Milestones</button>
+                <button onClick={() => setPanel({ kind: "labels" })}>Labels</button>
                 <button className="link-button danger" onClick={() => setConfirmDeleteBoard(true)}>
                   Delete board
                 </button>
               </header>
               <div className="content">
                 {view === "board" && (
-                  <BoardView boardId={board.id} selectedTaskId={selectedTaskId} onSelectTask={setSelectedTaskId} />
+                  <BoardView
+                    boardId={board.id}
+                    selectedTaskId={panel?.kind === "task" ? panel.id : null}
+                    onSelectTask={openTask}
+                    labelFilter={labelFilter}
+                  />
                 )}
                 {view === "timeline" && <p className="muted">Timeline view arrives in slice 5.</p>}
                 {view === "calendar" && <p className="muted">Calendar view arrives in slice 4.</p>}
@@ -147,9 +221,9 @@ export function App() {
           )}
         </main>
 
-        {selectedTaskId && (
+        {panel?.kind === "task" && (
           <TaskPanel
-            taskId={selectedTaskId}
+            taskId={panel.id}
             onClose={closePanel}
             onDeleted={(title, deleted) => {
               closePanel();
@@ -157,6 +231,18 @@ export function App() {
             }}
           />
         )}
+        {panel?.kind === "milestones" && board && (
+          <MilestonesPanel
+            boardId={board.id}
+            onOpen={(id) => setPanel({ kind: "milestone", id })}
+            onClose={closePanel}
+          />
+        )}
+        {panel?.kind === "milestone" && (
+          <MilestonePanel milestoneId={panel.id} onBack={() => setPanel({ kind: "milestones" })} onClose={closePanel} />
+        )}
+        {panel?.kind === "labels" && board && <LabelsPanel boardId={board.id} onClose={closePanel} />}
+        {panel?.kind === "settings" && <SettingsPanel onClose={closePanel} />}
 
         {confirmDeleteBoard && board && (
           <ConfirmDialog
@@ -167,7 +253,7 @@ export function App() {
             onCancel={() => setConfirmDeleteBoard(false)}
             onConfirm={() => {
               setConfirmDeleteBoard(false);
-              setSelectedTaskId(null);
+              setPanel(null);
               notices.attempt(() => store.mutate((r) => r.deleteBoard(board.id)));
             }}
           />

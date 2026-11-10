@@ -5,8 +5,15 @@ import {
   type Board,
   type Column,
   type DateStr,
+  type Label,
+  type Milestone,
   type Task,
 } from "../domain/types";
+import { DEFAULT_NEAR_WINDOW, clampNearWindow } from "../domain/deadline";
+
+/** The 8 fixed label colours (keys into tokens.css: --label-<key>). */
+export const LABEL_COLORS = ["red", "orange", "yellow", "green", "teal", "blue", "purple", "gray"] as const;
+export type LabelColor = (typeof LABEL_COLORS)[number];
 
 /**
  * All reads and writes of Tracklet data, with the spec's rules enforced (docs/mvp-spec.md §1).
@@ -34,7 +41,13 @@ export interface NewTask {
 }
 
 /** What is needed to undo a deletion. */
-export type Deleted = { kind: "task"; task: Task; labelIds: string[] };
+export type Deleted =
+  | { kind: "task"; task: Task; labelIds: string[] }
+  | { kind: "milestone"; milestone: Milestone; taskIds: string[] }
+  | { kind: "label"; label: Label; taskIds: string[] };
+
+export type MilestonePatch = Partial<Pick<Milestone, "title" | "description" | "date" | "isReached">>;
+export type LabelPatch = Partial<Pick<Label, "name" | "color">>;
 
 export const DEFAULT_COLUMNS: { name: string; done: boolean }[] = [
   { name: "To do", done: false },
@@ -77,6 +90,19 @@ const toTask = (r: Row): Task => ({
   updatedAt: r.updated_at,
 });
 
+const toMilestone = (r: Row): Milestone => ({
+  id: r.id,
+  boardId: r.board_id,
+  title: r.title,
+  description: r.description,
+  date: r.date,
+  isReached: r.is_reached === 1,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+});
+
+const toLabel = (r: Row): Label => ({ id: r.id, boardId: r.board_id, name: r.name, color: r.color });
+
 // ---------- helpers ----------
 
 function requireName(value: string, what: string): string {
@@ -113,6 +139,17 @@ export class Repository {
       "INSERT INTO setting (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
       [key, value],
     );
+  }
+
+  nearWindow(): number {
+    const v = this.getSetting("near_window_days");
+    return v === undefined ? DEFAULT_NEAR_WINDOW : clampNearWindow(Number(v));
+  }
+
+  setNearWindow(n: number): number {
+    const v = clampNearWindow(n);
+    this.setSetting("near_window_days", String(v));
+    return v;
   }
 
   // ---------- boards ----------
@@ -404,34 +441,247 @@ export class Repository {
     });
   }
 
-  /** Undoes a deletion. Puts the task back at its old place (clamped if the column shrank). */
+  /** Undoes a deletion. */
   restore(deleted: Deleted): void {
     this.sql.tx(() => {
-      const t = deleted.task;
-      if (!this.getBoard(t.boardId)) throw new ValidationError("Its board no longer exists.");
-      const col = this.getColumn(t.columnId);
-      if (!col) throw new ValidationError("Its column no longer exists.");
-      const count = this.sql.get<{ n: number }>("SELECT COUNT(*) AS n FROM task WHERE column_id = ?", [t.columnId])!.n;
-      const position = Math.min(t.position, count);
-      this.sql.run("UPDATE task SET position = position + 1 WHERE column_id = ? AND position >= ?", [
-        t.columnId,
-        position,
-      ]);
-      const milestoneExists =
-        t.milestoneId && this.sql.get("SELECT 1 AS x FROM milestone WHERE id = ?", [t.milestoneId]);
-      this.sql.run(
-        `INSERT INTO task (id, board_id, column_id, title, description, start_date, end_date, deadline,
-                           milestone_id, position, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [t.id, t.boardId, t.columnId, t.title, t.description, t.startDate, t.endDate, t.deadline,
-          milestoneExists ? t.milestoneId : null, position, t.createdAt, t.updatedAt],
-      );
-      for (const labelId of deleted.labelIds) {
-        this.sql.run(
-          "INSERT INTO task_label (task_id, label_id) SELECT ?, id FROM label WHERE id = ?",
-          [t.id, labelId],
-        );
-      }
+      if (deleted.kind === "task") this.restoreTask(deleted.task, deleted.labelIds);
+      else if (deleted.kind === "milestone") this.restoreMilestone(deleted.milestone, deleted.taskIds);
+      else this.restoreLabel(deleted.label, deleted.taskIds);
     });
+  }
+
+  /** Puts a task back at its old place (clamped if the column shrank). */
+  private restoreTask(t: Task, labelIds: string[]): void {
+    if (!this.getBoard(t.boardId)) throw new ValidationError("Its board no longer exists.");
+    const col = this.getColumn(t.columnId);
+    if (!col) throw new ValidationError("Its column no longer exists.");
+    const count = this.sql.get<{ n: number }>("SELECT COUNT(*) AS n FROM task WHERE column_id = ?", [t.columnId])!.n;
+    const position = Math.min(t.position, count);
+    this.sql.run("UPDATE task SET position = position + 1 WHERE column_id = ? AND position >= ?", [
+      t.columnId,
+      position,
+    ]);
+    const milestoneExists =
+      t.milestoneId && this.sql.get("SELECT 1 AS x FROM milestone WHERE id = ?", [t.milestoneId]);
+    this.sql.run(
+      `INSERT INTO task (id, board_id, column_id, title, description, start_date, end_date, deadline,
+                         milestone_id, position, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [t.id, t.boardId, t.columnId, t.title, t.description, t.startDate, t.endDate, t.deadline,
+        milestoneExists ? t.milestoneId : null, position, t.createdAt, t.updatedAt],
+    );
+    for (const labelId of labelIds) {
+      this.sql.run("INSERT INTO task_label (task_id, label_id) SELECT ?, id FROM label WHERE id = ?", [t.id, labelId]);
+    }
+  }
+
+  private restoreMilestone(m: Milestone, taskIds: string[]): void {
+    if (!this.getBoard(m.boardId)) throw new ValidationError("Its board no longer exists.");
+    this.sql.run(
+      `INSERT INTO milestone (id, board_id, title, description, date, is_reached, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [m.id, m.boardId, m.title, m.description, m.date, m.isReached ? 1 : 0, m.createdAt, m.updatedAt],
+    );
+    for (const id of taskIds) {
+      this.sql.run("UPDATE task SET milestone_id = ? WHERE id = ? AND milestone_id IS NULL", [m.id, id]);
+    }
+  }
+
+  private restoreLabel(l: Label, taskIds: string[]): void {
+    if (!this.getBoard(l.boardId)) throw new ValidationError("Its board no longer exists.");
+    this.requireUniqueLabelName(l.boardId, l.name, null);
+    this.sql.run("INSERT INTO label (id, board_id, name, color) VALUES (?, ?, ?, ?)", [l.id, l.boardId, l.name, l.color]);
+    for (const id of taskIds) {
+      this.sql.run("INSERT INTO task_label (task_id, label_id) SELECT id, ? FROM task WHERE id = ?", [l.id, id]);
+    }
+  }
+
+  // ---------- milestones ----------
+
+  listMilestones(boardId: string): Milestone[] {
+    return this.sql
+      .all<Row>("SELECT * FROM milestone WHERE board_id = ? ORDER BY date, title", [boardId])
+      .map(toMilestone);
+  }
+
+  listAllMilestones(): Milestone[] {
+    return this.sql.all<Row>("SELECT * FROM milestone ORDER BY date, title").map(toMilestone);
+  }
+
+  getMilestone(id: string): Milestone | undefined {
+    const r = this.sql.get<Row>("SELECT * FROM milestone WHERE id = ?", [id]);
+    return r && toMilestone(r);
+  }
+
+  createMilestone(boardId: string, title: string, date: DateStr, description = ""): Milestone {
+    const clean = requireName(title, "Milestone title");
+    const d = checkDate(date, "Milestone date");
+    if (!d) throw new ValidationError("A milestone needs a date.");
+    return this.sql.tx(() => {
+      if (!this.getBoard(boardId)) throw new ValidationError("Board not found.");
+      const id = this.newId();
+      const now = this.stamp();
+      this.sql.run(
+        `INSERT INTO milestone (id, board_id, title, description, date, is_reached, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, 0, ?, ?)`,
+        [id, boardId, clean, description, d, now, now],
+      );
+      return this.getMilestone(id)!;
+    });
+  }
+
+  updateMilestone(id: string, patch: MilestonePatch): Milestone {
+    return this.sql.tx(() => {
+      const m = this.getMilestone(id);
+      if (!m) throw new ValidationError("Milestone not found.");
+      let date = m.date;
+      if (patch.date !== undefined) {
+        const d = checkDate(patch.date, "Milestone date");
+        if (!d) throw new ValidationError("A milestone needs a date.");
+        date = d;
+      }
+      const next = {
+        title: patch.title !== undefined ? requireName(patch.title, "Milestone title") : m.title,
+        description: patch.description ?? m.description,
+        date,
+        isReached: patch.isReached ?? m.isReached,
+      };
+      this.sql.run(
+        "UPDATE milestone SET title = ?, description = ?, date = ?, is_reached = ?, updated_at = ? WHERE id = ?",
+        [next.title, next.description, next.date, next.isReached ? 1 : 0, this.stamp(), id],
+      );
+      return this.getMilestone(id)!;
+    });
+  }
+
+  /** R4: linked tasks are unlinked, not deleted. */
+  deleteMilestone(id: string): Deleted {
+    return this.sql.tx(() => {
+      const milestone = this.getMilestone(id);
+      if (!milestone) throw new ValidationError("Milestone not found.");
+      const taskIds = this.sql
+        .all<{ id: string }>("SELECT id FROM task WHERE milestone_id = ? ORDER BY id", [id])
+        .map((r) => r.id);
+      this.sql.run("DELETE FROM milestone WHERE id = ?", [id]);
+      return { kind: "milestone", milestone, taskIds };
+    });
+  }
+
+  // ---------- labels ----------
+
+  listLabels(boardId: string): Label[] {
+    return this.sql
+      .all<Row>("SELECT * FROM label WHERE board_id = ? ORDER BY name COLLATE NOCASE", [boardId])
+      .map(toLabel);
+  }
+
+  listAllLabels(): Label[] {
+    return this.sql.all<Row>("SELECT * FROM label ORDER BY name COLLATE NOCASE").map(toLabel);
+  }
+
+  getLabel(id: string): Label | undefined {
+    const r = this.sql.get<Row>("SELECT * FROM label WHERE id = ?", [id]);
+    return r && toLabel(r);
+  }
+
+  /** Every task→labels link on a board (or all boards), for rendering many cards at once. */
+  labelsByTask(boardId: string | null): Map<string, Label[]> {
+    const rows = this.sql.all<Row>(
+      `SELECT tl.task_id, l.* FROM task_label tl JOIN label l ON l.id = tl.label_id
+       ${boardId ? "WHERE l.board_id = ?" : ""} ORDER BY l.name COLLATE NOCASE`,
+      boardId ? [boardId] : [],
+    );
+    const map = new Map<string, Label[]>();
+    for (const r of rows) {
+      const list = map.get(r.task_id) ?? [];
+      list.push(toLabel(r));
+      map.set(r.task_id, list);
+    }
+    return map;
+  }
+
+  private requireUniqueLabelName(boardId: string, name: string, exceptId: string | null): void {
+    const clash = this.sql.get(
+      "SELECT 1 AS x FROM label WHERE board_id = ? AND lower(trim(name)) = lower(trim(?)) AND id IS NOT ?",
+      [boardId, name, exceptId],
+    );
+    if (clash) throw new ValidationError(`There is already a label called “${name.trim()}” on this board.`);
+  }
+
+  private checkColor(color: string): string {
+    if (!(LABEL_COLORS as readonly string[]).includes(color)) throw new ValidationError("Unknown label colour.");
+    return color;
+  }
+
+  createLabel(boardId: string, name: string, color: string): Label {
+    const clean = requireName(name, "Label name");
+    return this.sql.tx(() => {
+      if (!this.getBoard(boardId)) throw new ValidationError("Board not found.");
+      this.requireUniqueLabelName(boardId, clean, null);
+      const id = this.newId();
+      this.sql.run("INSERT INTO label (id, board_id, name, color) VALUES (?, ?, ?, ?)", [
+        id,
+        boardId,
+        clean,
+        this.checkColor(color),
+      ]);
+      return this.getLabel(id)!;
+    });
+  }
+
+  updateLabel(id: string, patch: LabelPatch): Label {
+    return this.sql.tx(() => {
+      const l = this.getLabel(id);
+      if (!l) throw new ValidationError("Label not found.");
+      const name = patch.name !== undefined ? requireName(patch.name, "Label name") : l.name;
+      this.requireUniqueLabelName(l.boardId, name, id);
+      const color = patch.color !== undefined ? this.checkColor(patch.color) : l.color;
+      this.sql.run("UPDATE label SET name = ?, color = ? WHERE id = ?", [name, color, id]);
+      return this.getLabel(id)!;
+    });
+  }
+
+  /** R4: removes the label from its tasks; the tasks stay. */
+  deleteLabel(id: string): Deleted {
+    return this.sql.tx(() => {
+      const label = this.getLabel(id);
+      if (!label) throw new ValidationError("Label not found.");
+      const taskIds = this.sql
+        .all<{ task_id: string }>("SELECT task_id FROM task_label WHERE label_id = ? ORDER BY task_id", [id])
+        .map((r) => r.task_id);
+      this.sql.run("DELETE FROM label WHERE id = ?", [id]);
+      return { kind: "label", label, taskIds };
+    });
+  }
+
+  /** Adds or removes one label on a task (R3: same board only). */
+  setTaskLabel(taskId: string, labelId: string, on: boolean): void {
+    this.sql.tx(() => {
+      const t = this.getTask(taskId);
+      const l = this.getLabel(labelId);
+      if (!t || !l) throw new ValidationError("Task or label not found.");
+      if (l.boardId !== t.boardId) throw new ValidationError("That label is not on this board.");
+      if (on) this.sql.run("INSERT OR IGNORE INTO task_label (task_id, label_id) VALUES (?, ?)", [taskId, labelId]);
+      else this.sql.run("DELETE FROM task_label WHERE task_id = ? AND label_id = ?", [taskId, labelId]);
+      this.sql.run("UPDATE task SET updated_at = ? WHERE id = ?", [this.stamp(), taskId]);
+    });
+  }
+
+  // ---------- cross-board reads (Timeline / Calendar "All boards") ----------
+
+  listAllTasks(): Task[] {
+    return this.sql
+      .all<Row>(
+        `SELECT t.* FROM task t JOIN board_column c ON c.id = t.column_id JOIN board b ON b.id = t.board_id
+         ORDER BY b.position, c.position, t.position`,
+      )
+      .map(toTask);
+  }
+
+  /** Ids of every column marked as done (across all boards). */
+  doneColumnIds(): Set<string> {
+    return new Set(
+      this.sql.all<{ id: string }>("SELECT id FROM board_column WHERE is_done_column = 1").map((r) => r.id),
+    );
   }
 }

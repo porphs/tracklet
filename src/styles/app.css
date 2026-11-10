@@ -16,7 +16,7 @@ h2 { font-size: var(--font-size); margin: 0; }
 .sidebar-footer { margin-top: auto; display: flex; flex-direction: column; gap: var(--space-1); }
 
 .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.header { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-bottom: var(--border); }
+.header { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-bottom: var(--border); }
 .content { flex: 1; overflow: auto; padding: var(--space-4); }
 
 .columns { display: flex; gap: var(--space-3); align-items: flex-start; }
@@ -65,3 +65,32 @@ h2 { font-size: var(--font-size); margin: 0; }
 .notice, .undo-bar { position: fixed; bottom: var(--space-4); left: 50%; transform: translateX(-50%); background: var(--color-text); color: var(--color-bg); padding: var(--space-2) var(--space-4); border-radius: var(--radius); display: flex; gap: var(--space-3); align-items: center; }
 .undo-bar { bottom: calc(var(--space-4) * 4); }
 .notice .link-button { color: var(--color-bg); text-decoration: underline; }
+
+/* Deadline status: shared by every view */
+.deadline { font-size: var(--font-size-small); color: var(--color-muted); }
+.deadline.status-overdue { color: var(--color-overdue); background: var(--color-overdue-bg); font-weight: bold; padding: 0 var(--space-1); border-radius: var(--radius); }
+.deadline.status-near { color: var(--color-near); background: var(--color-near-bg); font-weight: bold; padding: 0 var(--space-1); border-radius: var(--radius); }
+.card.status-overdue { border-left: 4px solid var(--color-overdue); }
+.card.status-near { border-left: 4px solid var(--color-near); }
+.card-meta { display: flex; flex-wrap: wrap; gap: var(--space-1); align-items: center; margin-top: var(--space-1); }
+.warning { font-size: var(--font-size-small); color: var(--color-near); }
+.milestone-tag { font-size: var(--font-size-small); color: var(--color-muted); }
+
+/* Labels */
+.chip { display: inline-block; font-size: var(--font-size-small); padding: 0 var(--space-1); border-radius: var(--radius); color: var(--color-text); }
+.chip-red { background: var(--label-red); }
+.chip-orange { background: var(--label-orange); }
+.chip-yellow { background: var(--label-yellow); }
+.chip-green { background: var(--label-green); }
+.chip-teal { background: var(--label-teal); }
+.chip-blue { background: var(--label-blue); }
+.chip-purple { background: var(--label-purple); }
+.chip-gray { background: var(--label-gray); }
+
+.counts { font-size: var(--font-size-small); }
+.counts .status-overdue { color: var(--color-overdue); font-weight: bold; }
+.counts .status-near { color: var(--color-near); font-weight: bold; }
+.list { display: flex; flex-direction: column; gap: var(--space-2); }
+.list-row { display: flex; gap: var(--space-2); align-items: center; justify-content: space-between; border-bottom: var(--border); padding-bottom: var(--space-2); }
+.row { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; }
+.reached { text-decoration: line-through; color: var(--color-muted); }

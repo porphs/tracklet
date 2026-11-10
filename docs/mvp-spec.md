@@ -30,6 +30,7 @@ All IDs are UUID strings. All dates are local calendar dates stored as `YYYY-MM-
 - R4: Deleting a milestone sets `milestone_id = null` on its tasks. Deleting a label removes its `task_label` rows. Deleting a task removes its `task_label` rows. Deleting a board removes everything on it.
 - R5: A column that contains tasks cannot be deleted.
 - R6: Positions within a column (tasks), within a board (columns) and in the sidebar (boards) are always 0…n-1 with no gaps after any operation.
+- R7: Label names are unique within a board, ignoring case and surrounding spaces. (The label filter matches by name, so duplicates would be ambiguous.)
 
 ## 2. Derived logic ([unit])
 
@@ -91,7 +92,7 @@ Features: start, end and deadline date fields in the details panel; deadline sta
 - AC3.3 [unit] Board counts match a fixture with a known mix of statuses.
 - AC3.4 [unit] Deleting a milestone unlinks its tasks without deleting them, and undo re-links them.
 - AC3.5 [unit] Deleting a label removes it from its tasks, and undo restores the links.
-- AC3.6 [unit] Assigning a milestone or label from another board is rejected (R3).
+- AC3.6 [unit] Assigning a milestone or label from another board is rejected (R3). A duplicate label name on the same board is rejected (R7).
 - AC3.7 [unit] Filtering by label returns only tasks that have that label. In All-boards scope it matches by label name across boards.
 - AC3.8 [app] An overdue card shows a red marker and an "Overdue Nd" badge, and a near card shows amber with "Due today" or "Due in Nd". Both are readable without relying on colour.
 - AC3.9 [app] Changing the near window in Settings updates the badges and counts at once and persists after relaunch.

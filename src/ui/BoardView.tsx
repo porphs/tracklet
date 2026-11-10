@@ -25,12 +25,25 @@ import { useStore } from "./useStore";
 import { useNotices } from "./notice";
 import { InlineEdit } from "./InlineEdit";
 import { ConfirmDialog } from "./ConfirmDialog";
-import type { Column, Task } from "../domain/types";
+import { DeadlineBadge, statusClass } from "./status";
+import { WARNING_TEXT, deadlineStatus, taskWarnings } from "../domain/deadline";
+import { matchesLabelFilter } from "../domain/filter";
+import type { Column, DateStr, Label, Milestone, Task } from "../domain/types";
 
 interface Props {
   boardId: string;
   selectedTaskId: string | null;
   onSelectTask: (id: string) => void;
+  /** Label name to filter by, or null for all tasks. */
+  labelFilter: string | null;
+}
+
+/** Everything a card needs besides its task, computed once per render of the board. */
+interface CardContext {
+  today: DateStr;
+  nearWindow: number;
+  labels: Map<string, Label[]>;
+  milestones: Map<string, Milestone>;
 }
 
 // Drag ids are prefixed so columns and cards can share one DndContext.
@@ -43,14 +56,23 @@ const kind = (key: string) => key.slice(0, key.indexOf(":"));
 /** Column ids → ordered task ids, used as the live layout while a card is dragged. */
 type Layout = Record<string, string[]>;
 
-export function BoardView({ boardId, selectedTaskId, onSelectTask }: Props) {
+export function BoardView({ boardId, selectedTaskId, onSelectTask, labelFilter }: Props) {
   const store = useStore();
   const { attempt } = useNotices();
   const columns = store.repo.listColumns(boardId);
-  const tasksById = new Map(store.repo.listTasks(boardId).map((t) => [t.id, t]));
-  const stored: Layout = Object.fromEntries(
-    columns.map((c) => [c.id, store.repo.listTasksInColumn(c.id).map((t) => t.id)]),
-  );
+  const allTasks = store.repo.listTasks(boardId);
+  const tasksById = new Map(allTasks.map((t) => [t.id, t]));
+  const ctx: CardContext = {
+    today: store.today(),
+    nearWindow: store.repo.nearWindow(),
+    labels: store.repo.labelsByTask(boardId),
+    milestones: new Map(store.repo.listMilestones(boardId).map((m) => [m.id, m])),
+  };
+  const visible = (id: string) => matchesLabelFilter(ctx.labels.get(id), labelFilter);
+  const fullLayout: Layout = Object.fromEntries(columns.map((c) => [c.id, [] as string[]]));
+  for (const t of allTasks) fullLayout[t.columnId]?.push(t.id);
+  // The board shows (and drags) only tasks that pass the label filter.
+  const stored: Layout = Object.fromEntries(columns.map((c) => [c.id, fullLayout[c.id].filter(visible)]));
 
   const [dragLayout, setDragLayout] = useState<Layout | null>(null);
   const [activeKey, setActiveKey] = useState<string | null>(null);
@@ -112,7 +134,13 @@ export function BoardView({ boardId, selectedTaskId, onSelectTask }: Props) {
     if (kind(o) === "task" && containerOf(o, l) === col) {
       ids = arrayMove(ids, ids.indexOf(id), ids.indexOf(strip(o)));
     }
-    const index = ids.indexOf(id);
+    // Map the drop position among visible cards to an index among all cards in that column,
+    // so hidden (filtered-out) cards keep their places.
+    const pos = ids.indexOf(id);
+    const full = fullLayout[col].filter((x) => x !== id);
+    const prev = ids[pos - 1];
+    const next = ids[pos + 1];
+    const index = prev ? full.indexOf(prev) + 1 : next ? full.indexOf(next) : full.length;
     const t = tasksById.get(id);
     if (t && (t.columnId !== col || t.position !== index)) {
       attempt(() => store.mutate((r) => r.moveTask(id, col, index)));
@@ -143,13 +171,14 @@ export function BoardView({ boardId, selectedTaskId, onSelectTask }: Props) {
               tasks={(layout[col.id] ?? []).map((id) => tasksById.get(id)!).filter(Boolean)}
               selectedTaskId={selectedTaskId}
               onSelectTask={onSelectTask}
+              ctx={ctx}
             />
           ))}
         </SortableContext>
         <AddColumn boardId={boardId} />
       </div>
       <DragOverlay>
-        {activeTask && <CardFace task={activeTask} done={false} />}
+        {activeTask && <CardFace task={activeTask} done={false} ctx={ctx} />}
         {activeColumn && <div className="column column-ghost">{activeColumn.name}</div>}
       </DragOverlay>
     </DndContext>
@@ -161,7 +190,8 @@ function ColumnView({
   tasks,
   selectedTaskId,
   onSelectTask,
-}: { column: Column; tasks: Task[] } & Omit<Props, "boardId">) {
+  ctx,
+}: { column: Column; tasks: Task[]; ctx: CardContext } & Omit<Props, "boardId" | "labelFilter">) {
   const store = useStore();
   const { attempt } = useNotices();
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -175,7 +205,7 @@ function ColumnView({
       className={`column${sortable.isDragging ? " dragging" : ""}`}
       aria-label={`Column ${column.name}`}
     >
-      <div className="column-header" {...sortable.attributes} {...sortable.listeners}>
+      <div className="column-header" {...sortable.attributes} {...sortable.listeners} aria-label={`Drag column ${column.name}`}>
         <h2>
           <InlineEdit
             value={column.name}
@@ -189,6 +219,7 @@ function ColumnView({
         <label title="Tasks in a done column count as done">
           <input
             type="checkbox"
+            aria-label={`${column.name} is a done column`}
             checked={column.isDoneColumn}
             onChange={(e) => attempt(() => store.mutate((r) => r.setDoneColumn(column.id, e.target.checked)))}
           />{" "}
@@ -216,6 +247,7 @@ function ColumnView({
               done={column.isDoneColumn}
               selected={t.id === selectedTaskId}
               onSelect={onSelectTask}
+              ctx={ctx}
             />
           ))}
         </SortableContext>
@@ -242,11 +274,13 @@ function SortableCard({
   done,
   selected,
   onSelect,
+  ctx,
 }: {
   task: Task;
   done: boolean;
   selected: boolean;
   onSelect: (id: string) => void;
+  ctx: CardContext;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: taskKey(task.id),
@@ -262,16 +296,50 @@ function SortableCard({
       aria-label={task.title}
       onClick={() => onSelect(task.id)}
     >
-      <CardFace task={task} done={done} selected={selected} />
+      <CardFace task={task} done={done} selected={selected} ctx={ctx} />
     </div>
   );
 }
 
-/** What a card shows. Labels, deadline badge and milestone tag arrive in slice 3. */
-export function CardFace({ task, done, selected = false }: { task: Task; done: boolean; selected?: boolean }) {
+/** What a card shows: title, label chips, deadline badge, milestone tag and warnings. */
+export function CardFace({
+  task,
+  done,
+  selected = false,
+  ctx,
+}: {
+  task: Task;
+  done: boolean;
+  selected?: boolean;
+  ctx: CardContext;
+}) {
+  const status = deadlineStatus(task.deadline, ctx.today, ctx.nearWindow, done).status;
+  const milestone = task.milestoneId ? ctx.milestones.get(task.milestoneId) : undefined;
+  const labels = ctx.labels.get(task.id) ?? [];
+  const warnings = taskWarnings(task, milestone, done);
   return (
-    <div className={`card${selected ? " selected" : ""}${done ? " done" : ""}`} data-task-id={task.id}>
+    <div
+      className={`card${selected ? " selected" : ""}${done ? " done" : ""}${statusClass(status)}`}
+      data-task-id={task.id}
+      data-status={status}
+    >
       <div className="card-title">{task.title}</div>
+      {(labels.length > 0 || task.deadline || milestone || warnings.length > 0) && (
+        <div className="card-meta">
+          {labels.map((l) => (
+            <span key={l.id} className={`chip chip-${l.color}`}>
+              {l.name}
+            </span>
+          ))}
+          <DeadlineBadge date={task.deadline} today={ctx.today} nearWindow={ctx.nearWindow} closed={done} />
+          {milestone && <span className="milestone-tag">◆ {milestone.title}</span>}
+          {warnings.map((w) => (
+            <span key={w} className="warning" title={WARNING_TEXT[w]}>
+              ⚠ {w === "end-after-deadline" ? "end > deadline" : "after milestone"}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

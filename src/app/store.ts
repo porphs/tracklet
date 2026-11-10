@@ -4,6 +4,8 @@ import { migrate, pendingMigrations } from "../storage/migrations";
 import { openDatabase } from "../storage/open";
 import type { Persistence } from "../storage/persistence";
 import type { Sql } from "../storage/sql";
+import { toLocalDate } from "../domain/dates";
+import type { DateStr } from "../domain/types";
 
 /**
  * Owns the open database. Every change goes through `mutate`, which notifies the UI
@@ -20,9 +22,15 @@ export class Store {
   constructor(
     readonly sql: Sql,
     readonly persistence: Persistence,
-    clock: Clock = systemClock,
+    /** Mutable so the dev preview can simulate another day (spec AC3.10). */
+    public clock: Clock = systemClock,
   ) {
-    this.repo = new Repository(sql, clock);
+    this.repo = new Repository(sql, { now: () => this.clock.now() });
+  }
+
+  /** Today's local date on this Mac. */
+  today(): DateStr {
+    return toLocalDate(this.clock.now());
   }
 
   subscribe = (fn: () => void): (() => void) => {

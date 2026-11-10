@@ -17,9 +17,10 @@ import type { Board } from "../domain/types";
 interface Props {
   activeBoardId: string | undefined;
   onSelect: (id: string) => void;
+  onOpenSettings: () => void;
 }
 
-export function Sidebar({ activeBoardId, onSelect }: Props) {
+export function Sidebar({ activeBoardId, onSelect, onOpenSettings }: Props) {
   const store = useStore();
   const { attempt } = useNotices();
   const boards = store.repo.listBoards();
@@ -72,6 +73,11 @@ export function Sidebar({ activeBoardId, onSelect }: Props) {
             + New board
           </button>
         )}
+      </div>
+      <div className="sidebar-footer">
+        <button className="link-button" onClick={onOpenSettings}>
+          Settings
+        </button>
       </div>
     </nav>
   );
