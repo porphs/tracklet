@@ -125,7 +125,7 @@ Features: a left task list plus a date grid; a task with only one planned date (
 
 ### Slice 6: Export / import and snapshots
 
-Features: File → Export… (save dialog) writes all data as JSON; File → Import… validates, confirms, snapshots, then replaces all data; automatic snapshots (on the first launch each day, before migrations, before imports), keeping the newest 14 in `backups/`.
+Features: **Export** (sidebar) writes all data as JSON to `~/Downloads/tracklet-export-YYYYMMDD-HHMMSS.json` and reveals it in Finder; **Import** (sidebar) opens the system file picker, then validates, confirms, snapshots, and replaces all data. (We skip a Save dialog so no dialog plugin is needed, keeping ADR 0001's dependency list unchanged.) Automatic snapshots (on the first launch each day, before migrations, before imports), keeping the newest 14 in `backups/`.
 
 - AC6.1 [unit] Export → import into an empty database → export gives identical JSON, ignoring `exportedAt`.
 - AC6.2 [unit] Import rejects: invalid JSON; a missing `formatVersion`; a newer `formatVersion`; dangling references (a task pointing to a missing column, milestone or label, or across boards). After a rejected import the database is unchanged.
@@ -135,6 +135,7 @@ Features: File → Export… (save dialog) writes all data as JSON; File → Imp
 - AC6.6 [unit] The daily-snapshot decision is true only when no snapshot exists for today's date.
 - AC6.7 [app] Export, then delete a board, then import the file: the board is back with all its tasks.
 - AC6.8 [app] After an import, a new snapshot file exists in `backups/`.
+- AC6.9 [app] Export creates the file in Downloads and shows its path; the file opens in Finder.
 
 ### Phase 3: Packaging
 

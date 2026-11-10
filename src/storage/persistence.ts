@@ -9,6 +9,21 @@ export interface Persistence {
   deleteBackup(name: string): Promise<void>;
   /** Human-readable location of the data, for Settings. */
   location(): Promise<string>;
+  /** Saves an export file where the user can find it; returns where it went. */
+  exportFile(name: string, contents: string): Promise<string>;
+  /** Shows a saved file in Finder, when possible. */
+  reveal(path: string): Promise<void>;
+}
+
+/** Browser preview: hands the file to the browser as a download. */
+function browserDownload(name: string, contents: string): string {
+  const url = URL.createObjectURL(new Blob([contents], { type: "application/json" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return `Downloads/${name} (browser download)`;
 }
 
 export function isTauri(): boolean {
@@ -31,6 +46,8 @@ export async function tauriPersistence(): Promise<Persistence> {
     listBackups: () => invoke<string[]>("backup_list"),
     deleteBackup: (name) => invoke("backup_delete", { name }),
     location: () => invoke<string>("data_dir_path"),
+    exportFile: (name, contents) => invoke<string>("export_write", { name, contents }),
+    reveal: (path) => invoke("reveal_path", { path }),
   };
 }
 
@@ -38,6 +55,7 @@ export async function tauriPersistence(): Promise<Persistence> {
 export function memoryPersistence(initial: Uint8Array | null = null): Persistence & {
   saved: Uint8Array | null;
   backups: Map<string, Uint8Array>;
+  exports: Map<string, string>;
 } {
   const p = {
     kind: "memory" as const,
@@ -63,6 +81,12 @@ export function memoryPersistence(initial: Uint8Array | null = null): Persistenc
     async location() {
       return "memory (not saved)";
     },
+    exports: new Map<string, string>(),
+    async exportFile(name: string, contents: string) {
+      p.exports.set(name, contents);
+      return `memory:${name}`;
+    },
+    async reveal() {},
   };
   return p;
 }
@@ -118,5 +142,9 @@ export function browserPersistence(): Persistence {
     async location() {
       return "browser localStorage (development preview)";
     },
+    async exportFile(name, contents) {
+      return browserDownload(name, contents);
+    },
+    async reveal() {},
   };
 }

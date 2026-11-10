@@ -13,14 +13,16 @@ import { useStore } from "./useStore";
 import { useNotices } from "./notice";
 import { InlineEdit } from "./InlineEdit";
 import type { Board } from "../domain/types";
+import { BackupControls } from "./BackupControls";
 
 interface Props {
   activeBoardId: string | undefined;
   onSelect: (id: string) => void;
   onOpenSettings: () => void;
+  onImported: () => void;
 }
 
-export function Sidebar({ activeBoardId, onSelect, onOpenSettings }: Props) {
+export function Sidebar({ activeBoardId, onSelect, onOpenSettings, onImported }: Props) {
   const store = useStore();
   const { attempt } = useNotices();
   const boards = store.repo.listBoards();
@@ -75,6 +77,7 @@ export function Sidebar({ activeBoardId, onSelect, onOpenSettings }: Props) {
         )}
       </div>
       <div className="sidebar-footer">
+        <BackupControls onImported={onImported} />
         <button className="link-button" onClick={onOpenSettings}>
           Settings
         </button>

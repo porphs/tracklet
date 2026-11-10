@@ -94,6 +94,40 @@ fn backup_delete(app: AppHandle, name: String) -> Result<(), String> {
     fs::remove_file(path).map_err(|e| e.to_string())
 }
 
+/// Writes an export file into the user's Downloads folder and returns its full path.
+#[tauri::command]
+fn export_write(app: AppHandle, name: String, contents: String) -> Result<String, String> {
+    let ok = name.starts_with("tracklet-export-")
+        && name.ends_with(".json")
+        && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '.')
+        && !name.contains("..");
+    if !ok {
+        return Err(format!("invalid export name: {name}"));
+    }
+    let dir = app.path().download_dir().map_err(|e| e.to_string())?;
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let path = dir.join(&name);
+    let tmp = dir.join(format!("{name}.tmp"));
+    fs::write(&tmp, contents.as_bytes()).map_err(|e| e.to_string())?;
+    fs::rename(&tmp, &path).map_err(|e| e.to_string())?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+/// Shows a file in Finder (macOS `open -R`). Only for paths inside Downloads or the data folder.
+#[tauri::command]
+fn reveal_path(app: AppHandle, path: String) -> Result<(), String> {
+    let p = PathBuf::from(&path);
+    if p.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+        return Err("not allowed".into());
+    }
+    let allowed = [app.path().download_dir().ok(), app.path().app_data_dir().ok()];
+    if !allowed.iter().flatten().any(|dir| p.starts_with(dir)) {
+        return Err("not allowed".into());
+    }
+    std::process::Command::new("open").arg("-R").arg(&p).spawn().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 /// Absolute path of the data folder, shown in Settings so the user can find their data.
 #[tauri::command]
 fn data_dir_path(app: AppHandle) -> Result<String, String> {
@@ -109,7 +143,9 @@ pub fn run() {
             backup_create,
             backup_list,
             backup_delete,
-            data_dir_path
+            data_dir_path,
+            export_write,
+            reveal_path
         ])
         .run(tauri::generate_context!())
         .expect("error while running Tracklet");

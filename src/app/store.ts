@@ -6,6 +6,7 @@ import type { Persistence } from "../storage/persistence";
 import type { Sql } from "../storage/sql";
 import { toLocalDate } from "../domain/dates";
 import type { DateStr } from "../domain/types";
+import { needsDailySnapshot, takeSnapshot } from "./snapshots";
 
 /**
  * Owns the open database. Every change goes through `mutate`, which notifies the UI
@@ -82,14 +83,6 @@ export class Store {
   }
 }
 
-export function backupName(reason: string, now: Date): string {
-  const p = (n: number) => String(n).padStart(2, "0");
-  const stamp =
-    `${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}-` +
-    `${p(now.getHours())}${p(now.getMinutes())}${p(now.getSeconds())}`;
-  return `tracklet-${stamp}-${reason}.db`;
-}
-
 /**
  * Opens the saved database, snapshots it before any migration, migrates, seeds on first launch,
  * and saves. Throws NewerDatabaseError (without touching anything) if the data is from a newer app.
@@ -102,8 +95,10 @@ export async function bootStore(
   const bytes = await persistence.load();
   const sql = await openDatabase(bytes, opts.sqlConfig);
   const pending = pendingMigrations(sql);
-  if (pending.length && bytes) {
-    await persistence.createBackup(backupName(`pre-migration-v${pending[pending.length - 1].version}`, clock.now()));
+  if (bytes && pending.length) {
+    await takeSnapshot(persistence, `pre-migration-v${pending[pending.length - 1].version}`, clock.now());
+  } else if (bytes && needsDailySnapshot(await persistence.listBackups(), toLocalDate(clock.now()))) {
+    await takeSnapshot(persistence, "daily", clock.now());
   }
   migrate(sql);
   const store = new Store(sql, persistence, clock);

@@ -132,6 +132,11 @@ export function App() {
           activeBoardId={board?.id}
           onSelect={selectBoard}
           onOpenSettings={() => setPanel({ kind: "settings" })}
+          onImported={() => {
+            setPanel(null);
+            setLabelFilter(null);
+            setBoardId(repo.getSetting("last_board_id"));
+          }}
         />
 
         <main className="main">
