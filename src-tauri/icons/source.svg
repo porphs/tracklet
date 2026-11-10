@@ -1,6 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <rect x="64" y="64" width="896" height="896" rx="200" fill="#2f5fd0"/>
-  <rect x="200" y="260" width="180" height="500" rx="36" fill="#ffffff"/>
-  <rect x="422" y="260" width="180" height="340" rx="36" fill="#ffffff" opacity="0.85"/>
-  <rect x="644" y="260" width="180" height="420" rx="36" fill="#ffffff" opacity="0.7"/>
+  <!-- The sidebar logo (30×30 grid) scaled onto the macOS icon grid: 824px tile, 100px margin. -->
+  <rect x="100" y="100" width="824" height="824" rx="200" fill="#0e8f9c"/>
+  <rect x="292.3" y="319.7" width="274.7" height="109.9" rx="54.9" fill="#ffffff"/>
+  <rect x="621.9" y="319.7" width="109.9" height="109.9" rx="54.9" fill="#ffffff" opacity="0.45"/>
+  <rect x="457.1" y="319.7" width="109.9" height="412" rx="54.9" fill="#ffffff"/>
 </svg>
