@@ -13,6 +13,7 @@ import type { Deleted } from "../data/repository";
 import type { View } from "../domain/types";
 import { countStatuses } from "../domain/deadline";
 import { labelNames } from "../domain/filter";
+import { CalendarView, type Scope } from "./CalendarView";
 
 const VIEWS: { id: View; label: string }[] = [
   { id: "board", label: "Board" },
@@ -33,6 +34,7 @@ export function App() {
   });
   const [panel, setPanel] = useState<PanelState>(null);
   const [labelFilter, setLabelFilter] = useState<string | null>(null);
+  const [scope, setScope] = useState<Scope>("board");
   const [notice, setNotice] = useState<string | null>(null);
   const [undo, setUndo] = useState<{ message: string; deleted: Deleted } | null>(null);
   const [confirmDeleteBoard, setConfirmDeleteBoard] = useState(false);
@@ -117,7 +119,10 @@ export function App() {
         repo.nearWindow(),
       )
     : { overdue: 0, near: 0 };
-  const filterNames = board ? labelNames(repo.listLabels(board.id)) : [];
+  // In the All-boards scope the filter offers every board's label names (matched by name).
+  const filterNames = board
+    ? labelNames(view !== "board" && scope === "all" ? repo.listAllLabels() : repo.listLabels(board.id))
+    : [];
 
   return (
     <NoticeContext.Provider value={notices}>
@@ -157,6 +162,21 @@ export function App() {
                   <span className={counts.near ? "status-near" : ""}>{counts.near} due soon</span>
                 </span>
                 <div className="header-spacer" />
+                {view !== "board" && (
+                  <div className="scope" role="radiogroup" aria-label="Scope">
+                    {(["board", "all"] as const).map((s) => (
+                      <button
+                        key={s}
+                        role="radio"
+                        aria-checked={scope === s}
+                        className={`tab${scope === s ? " active" : ""}`}
+                        onClick={() => setScope(s)}
+                      >
+                        {s === "board" ? "This board" : "All boards"}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <label className="row">
                   <span className="muted">Label</span>
                   <select
@@ -188,7 +208,15 @@ export function App() {
                   />
                 )}
                 {view === "timeline" && <p className="muted">Timeline view arrives in slice 5.</p>}
-                {view === "calendar" && <p className="muted">Calendar view arrives in slice 4.</p>}
+                {view === "calendar" && (
+                  <CalendarView
+                    boardId={board.id}
+                    scope={scope}
+                    labelFilter={labelFilter}
+                    onOpenTask={openTask}
+                    onOpenMilestone={(id) => setPanel({ kind: "milestone", id })}
+                  />
+                )}
               </div>
             </>
           ) : (

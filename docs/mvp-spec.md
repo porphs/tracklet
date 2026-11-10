@@ -48,6 +48,8 @@ All IDs are UUID strings. All dates are local calendar dates stored as `YYYY-MM-
 
 **Board counts**: the number of tasks and open milestones on the board with status `overdue`, and the number with status `near`.
 
+**Label filter** applies to tasks only. Milestones have no labels, so they always show on the Timeline and Calendar.
+
 **Today** is the Mac's local date. It is recalculated on launch, when the window gains focus, and every minute, so the day rolling over updates statuses without a restart.
 
 ---
