@@ -149,3 +149,40 @@ export function ticks(range: Range, zoom: Zoom): Tick[] {
   }
   return out;
 }
+
+/** What a drag on a task bar changes: the whole bar, or one of its ends. */
+export type BarDrag = "move" | "start" | "end";
+
+export interface PlannedDates {
+  startDate: DateStr | null;
+  endDate: DateStr | null;
+}
+
+/** Whole days for a horizontal drag of `dx` pixels, rounded to the nearest day (spec slice 8). */
+export function dayDelta(dx: number, zoom: Zoom): number {
+  return Math.round(dx / PX_PER_DAY[zoom]) || 0; // `|| 0` turns -0 into 0
+}
+
+/**
+ * The planned dates after dragging a bar by `delta` days (spec slice 8). Moving shifts
+ * whichever dates are set. Resizing changes one end, clamped so start <= end, and writes both
+ * dates so a one-date bar keeps the shape you see. The deadline is never touched here.
+ */
+export function dragPlannedDates(dates: PlannedDates, kind: BarDrag, delta: number): PlannedDates {
+  if (delta === 0) return dates;
+  if (kind === "move") {
+    return {
+      startDate: dates.startDate && addDays(dates.startDate, delta),
+      endDate: dates.endDate && addDays(dates.endDate, delta),
+    };
+  }
+  const start = dates.startDate ?? dates.endDate;
+  const end = dates.endDate ?? dates.startDate;
+  if (!start || !end) return dates;
+  if (kind === "start") {
+    const s = addDays(start, delta);
+    return { startDate: s > end ? end : s, endDate: end };
+  }
+  const e = addDays(end, delta);
+  return { startDate: start, endDate: e < start ? start : e };
+}

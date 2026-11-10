@@ -125,4 +125,7 @@
   --color-bar-done: #cfe6ea;
   --color-tick-done: #9aa5ad;
   --color-grid: #e6e7e9;
+  --color-handle: rgba(255, 255, 255, 0.55);
+  --tl-handle-width: 8px;
+  --shadow-drag: 0 2px 8px rgba(0, 0, 0, 0.18);
 }

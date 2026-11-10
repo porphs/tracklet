@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { PX_PER_DAY, barGeometry, buildTimeline, dateToX, ticks, visibleRange, xToDate, type Zoom } from "./timeline";
+import {
+  PX_PER_DAY,
+  barGeometry,
+  buildTimeline,
+  dateToX,
+  dayDelta,
+  dragPlannedDates,
+  ticks,
+  visibleRange,
+  xToDate,
+  type Zoom,
+} from "./timeline";
 import type { Board, Label, Milestone, Task } from "./types";
 
 const board = (id: string, position = 0): Board => ({ id, name: id, position, createdAt: "", updatedAt: "" });
@@ -125,5 +136,45 @@ describe("AC5.3: visible range", () => {
     expect(ticks(range, "week").map((t) => t.date).slice(0, 3)).toEqual(["2026-11-02", "2026-11-09", "2026-11-16"]);
     expect(ticks(range, "month").map((t) => t.date)).toEqual(["2026-11-01", "2026-12-01"]);
     expect(ticks(range, "day")).toHaveLength(61);
+  });
+});
+
+describe("AC8.1: drag to planned dates", () => {
+  const both = { startDate: "2026-11-10", endDate: "2026-11-14" };
+  it("move shifts start and end by the delta", () => {
+    expect(dragPlannedDates(both, "move", 2)).toEqual({ startDate: "2026-11-12", endDate: "2026-11-16" });
+    expect(dragPlannedDates(both, "move", -10)).toEqual({ startDate: "2026-10-31", endDate: "2026-11-04" });
+  });
+  it("move shifts only the date that is set", () => {
+    expect(dragPlannedDates({ startDate: "2026-11-10", endDate: null }, "move", 3)).toEqual({ startDate: "2026-11-13", endDate: null });
+    expect(dragPlannedDates({ startDate: null, endDate: "2026-11-10" }, "move", -1)).toEqual({ startDate: null, endDate: "2026-11-09" });
+  });
+  it("resizing changes one end only", () => {
+    expect(dragPlannedDates(both, "start", -2)).toEqual({ startDate: "2026-11-08", endDate: "2026-11-14" });
+    expect(dragPlannedDates(both, "end", 3)).toEqual({ startDate: "2026-11-10", endDate: "2026-11-17" });
+  });
+  it("resizing clamps so start <= end (a bar is at least one day)", () => {
+    expect(dragPlannedDates(both, "start", 9)).toEqual({ startDate: "2026-11-14", endDate: "2026-11-14" });
+    expect(dragPlannedDates(both, "end", -9)).toEqual({ startDate: "2026-11-10", endDate: "2026-11-10" });
+  });
+  it("resizing a one-date bar sets both dates", () => {
+    expect(dragPlannedDates({ startDate: "2026-11-10", endDate: null }, "end", 4)).toEqual({ startDate: "2026-11-10", endDate: "2026-11-14" });
+    expect(dragPlannedDates({ startDate: null, endDate: "2026-11-10" }, "start", -2)).toEqual({ startDate: "2026-11-08", endDate: "2026-11-10" });
+  });
+  it("a zero delta returns the dates unchanged", () => {
+    const one = { startDate: "2026-11-10", endDate: null };
+    expect(dragPlannedDates(one, "end", 0)).toEqual(one);
+    expect(dragPlannedDates(both, "move", 0)).toEqual(both);
+  });
+});
+
+describe("AC8.2: pixels to days", () => {
+  it.each(["day", "week", "month"] as Zoom[])("rounds to the nearest whole day (%s)", (zoom) => {
+    const px = PX_PER_DAY[zoom];
+    expect(dayDelta(0, zoom)).toBe(0);
+    expect(dayDelta(px * 0.4, zoom)).toBe(0);
+    expect(dayDelta(px * 0.6, zoom)).toBe(1);
+    expect(dayDelta(px * 3, zoom)).toBe(3);
+    expect(dayDelta(-px * 2.6, zoom)).toBe(-3);
   });
 });

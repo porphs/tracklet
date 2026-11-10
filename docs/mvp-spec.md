@@ -113,7 +113,7 @@ Features: a month grid starting Monday; task deadlines and milestones (◆) on t
 
 ### Slice 5: Timeline view  **[STOP for manual testing after this slice]**
 
-Features: a left task list plus a date grid; a task with only one planned date (start or end) draws a one-day bar on that date; rows grouped by milestone (milestones by date, then "No milestone"), and in All-boards scope by board first; each milestone diamond on its group header; tasks sorted by start date, then deadline; a start→end bar, a deadline tick after the end, and a marker for a deadline-only task; tasks with no dates are hidden; a today line; Day / Week / Month zoom; a Today button; status colours, with done tasks faded; click a bar, marker or diamond to open the editor; scope toggle and label filter. No dragging.
+Features: a left task list plus a date grid; a task with only one planned date (start or end) draws a one-day bar on that date; rows grouped by milestone (milestones by date, then "No milestone"), and in All-boards scope by board first; each milestone diamond on its group header; tasks sorted by start date, then deadline; a start→end bar, a deadline tick after the end, and a marker for a deadline-only task; tasks with no dates are hidden; a today line; Day / Week / Month zoom; a Today button; status colours, with done tasks faded; click a bar, marker or diamond to open the editor; scope toggle and label filter. No dragging in this slice (added after the MVP, see Slice 8).
 
 - AC5.1 [unit] The row-building function groups and sorts tasks as described and leaves out tasks with no dates.
 - AC5.2 [unit] The date→x mapping is correct at each zoom level. A bar's start x and width match its start and end (inclusive of the end day).
@@ -137,6 +137,24 @@ Features: **Export** (sidebar) writes all data as JSON to `~/Downloads/tracklet-
 - AC6.8 [app] After an import, a new snapshot file exists in `backups/`.
 - AC6.9 [app] Export creates the file in Downloads and shows its path; the file opens in Finder.
 
+### Slice 8: Timeline dragging (post-MVP)
+
+Features: on the Timeline, drag to change dates instead of opening the panel. Everything snaps to whole days, and the change is saved once, when the mouse is released. While dragging, the new dates are shown next to the item.
+
+- **Move a bar**: shifts the planned dates (start and end) by the same number of days. A task with only one planned date shifts only that date. The deadline does **not** move; if the bar ends up past it, the usual "end > deadline" warning shows.
+- **Resize a bar**: drag its left end to change the start date, or its right end to change the end date. The ends cannot cross (a bar is at least one day). Resizing a one-date bar writes both dates, so the task keeps exactly the bar you see. Bars narrower than 24px have no resize ends (they can only be moved).
+- **Move a deadline** (tick or dot) or a **milestone diamond**: changes that date.
+- **Pan**: dragging empty chart space scrolls the view.
+- A press that moves less than 4px is a click, and opens the editor as before. Esc during a drag cancels it. Done tasks and reached milestones can be dragged too.
+- No undo for drags (same as editing dates in the panel); drag back or edit in the panel.
+
+- AC8.1 [unit] The drag-to-dates function: moving shifts start and end (or only the date that is set) by the day delta, and never the deadline; resizing changes one end and clamps so start ≤ end; resizing a one-date bar sets both dates; a zero delta changes nothing.
+- AC8.2 [unit] The pixels-to-days function rounds to the nearest whole day at each zoom.
+- AC8.3 [app] Dragging the 2026-11-10 → 2026-11-14 bar two days right (week zoom) saves 2026-11-12 → 2026-11-16 and leaves its deadline unchanged.
+- AC8.4 [app] Dragging a bar's right end changes only the end date; dragging a deadline tick or a milestone diamond changes only that date, and the Board and Calendar show the new date.
+- AC8.5 [app] A short click on a bar still opens the panel. Esc mid-drag leaves the dates as they were.
+- AC8.6 [app] Dragging empty chart space scrolls the view; the dates of nothing change.
+
 ### Phase 3: Packaging
 
 - AC7.1 `npm run tauri build` produces `Tracklet.app` and a `.dmg` (Apple Silicon), ad-hoc signed.
@@ -147,7 +165,7 @@ Features: **Export** (sidebar) writes all data as JSON to `~/Downloads/tracklet-
 
 ## 4. UI rules for the MVP
 
-- System font, light only, simple spacing. No animations, theming or design system.
+- The look follows the post-MVP redesign: teal accent, the bundled Anuphan font (offline), rounded surfaces. Light only; no animations or theming.
 - All colours, spacing and sizes come from one stylesheet of CSS variables (`src/styles/tokens.css`), and components use those variables only, to keep the redesign cheap.
 - Status colours: overdue = red, near = amber, done = faded (reduced opacity). There is always a text badge alongside the colour.
 - Label palette: 8 fixed colours, defined in the same stylesheet.
@@ -155,4 +173,4 @@ Features: **Export** (sidebar) writes all data as JSON to `~/Downloads/tracklet-
 
 ## 5. Out of scope for the MVP
 
-Checklists/subtasks, priority, attachments, comments, time tracking, recurring tasks; archive; times of day; Markdown descriptions; global search; notifications/reminders; per-board export, merge-import, in-app snapshot restore, iCloud or custom backup folder; Calendar week view; dragging or resizing Timeline bars; keyboard card moves and extra shortcuts; printing; **moving a task to another board**; sync, accounts, multi-user, mobile, Windows/Linux; Developer ID signing, notarisation, auto-update; any visual design work, theming, dark mode or animations.
+Checklists/subtasks, priority, attachments, comments, time tracking, recurring tasks; archive; times of day; Markdown descriptions; global search; notifications/reminders; per-board export, merge-import, in-app snapshot restore, iCloud or custom backup folder; Calendar week view; keyboard card moves and extra shortcuts; printing; **moving a task to another board**; sync, accounts, multi-user, mobile, Windows/Linux; Developer ID signing, notarisation, auto-update; theming, dark mode or animations.

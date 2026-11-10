@@ -234,3 +234,16 @@ button.tl-label:hover:not(:disabled) { background: var(--color-subtle); }
 .panel .row > label.row { gap: 6px; }
 .panel code { font-family: var(--font-mono); font-size: var(--font-size-input); color: var(--color-text); word-break: break-all; }
 .panel .list-row .row { flex-wrap: nowrap; }
+
+/* Timeline dragging (spec slice 8) */
+.tl-scroller { user-select: none; }
+.tl-track { cursor: grab; }
+.tl-scroller.panning, .tl-scroller.panning .tl-track { cursor: grabbing; }
+.tl-bar, .tl-deadline, .tl-diamond { cursor: grab; touch-action: none; }
+.tl-bar.dragging, .tl-deadline.dragging, .tl-diamond.dragging { cursor: grabbing; z-index: 4; box-shadow: var(--shadow-drag); }
+.tl-scroller.drag-active, .tl-scroller.drag-active * { cursor: grabbing; }
+.tl-handle { position: absolute; top: 0; bottom: 0; width: var(--tl-handle-width); cursor: ew-resize; touch-action: none; border-radius: var(--radius-pill); }
+.tl-handle.start { left: 0; }
+.tl-handle.end { right: 0; }
+.tl-bar:hover .tl-handle { background: var(--color-handle); }
+.tl-drag-hint { position: absolute; top: 7px; z-index: 5; pointer-events: none; white-space: nowrap; background: var(--color-toast); color: var(--color-toast-text); font-size: var(--font-size-tiny); line-height: 22px; padding: 0 var(--space-2); border-radius: var(--radius-pill); }
