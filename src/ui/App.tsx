@@ -15,6 +15,7 @@ import { countStatuses } from "../domain/deadline";
 import { labelNames } from "../domain/filter";
 import { CalendarView, type Scope } from "./CalendarView";
 import { TimelineView } from "./TimelineView";
+import { isTauri } from "../storage/persistence";
 
 const VIEWS: { id: View; label: string }[] = [
   { id: "board", label: "Board" },
@@ -71,6 +72,27 @@ export function App() {
 
   const closePanel = useCallback(() => setPanel(null), []);
   const openTask = useCallback((id: string) => setPanel({ kind: "task", id }), []);
+
+  // The menu bar popover asks to open a task here (src-tauri/src/lib.rs `open_task`).
+  useEffect(() => {
+    if (!isTauri()) return;
+    let unlisten: (() => void) | undefined;
+    let gone = false;
+    import("@tauri-apps/api/event").then(({ listen }) =>
+      listen<string>("open-task", ({ payload: id }) => {
+        const task = repo.getTask(id);
+        if (!task) return;
+        setBoardId(task.boardId);
+        store.mutate((r) => r.setSetting("last_board_id", task.boardId));
+        setLabelFilter(null);
+        setPanel({ kind: "task", id });
+      }).then((fn) => (gone ? fn() : (unlisten = fn))),
+    );
+    return () => {
+      gone = true;
+      unlisten?.();
+    };
+  }, [repo, store]);
 
   // "Today" is re-checked every minute and when the window regains focus, so statuses
   // update when the date rolls over without a restart (spec §2).

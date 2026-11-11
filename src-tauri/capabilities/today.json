@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "today",
+  "description": "Permissions for the menu bar \"Today\" popover (reads data; never writes it)",
+  "windows": ["today"],
+  "permissions": ["core:default"]
+}

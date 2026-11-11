@@ -247,3 +247,19 @@ button.tl-label:hover:not(:disabled) { background: var(--color-subtle); }
 .tl-handle.end { right: 0; }
 .tl-bar:hover .tl-handle { background: var(--color-handle); }
 .tl-drag-hint { position: absolute; top: 7px; z-index: 5; pointer-events: none; white-space: nowrap; background: var(--color-toast); color: var(--color-toast-text); font-size: var(--font-size-tiny); line-height: 22px; padding: 0 var(--space-2); border-radius: var(--radius-pill); }
+
+/* ---------- Menu bar "Today" popover ---------- */
+.today { display: flex; flex-direction: column; height: 100%; background: var(--color-bg); user-select: none; -webkit-user-select: none; cursor: default; }
+.today-header { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--space-2); padding: var(--space-4) var(--space-4) var(--space-3); border-bottom: var(--border); }
+.today-header h1 { font-size: var(--font-size-panel-title); }
+.today-count { font-size: var(--font-size-small); font-weight: var(--weight-semibold); color: var(--color-accent); }
+.today-list { flex: 1; overflow-y: auto; padding: var(--space-3) var(--space-2); display: flex; flex-direction: column; gap: var(--space-3); }
+.today-section { display: flex; flex-direction: column; gap: 2px; }
+.today-section .sidebar-heading { margin: 0 var(--space-2) var(--space-1); }
+.today-task { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; text-align: left; background: transparent; padding: var(--space-2); border-radius: var(--radius); }
+.today-task:hover:not(:disabled) { background: var(--color-selected); }
+.today-title { font-weight: var(--weight-medium); overflow-wrap: anywhere; }
+.today-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) 6px; font-size: var(--font-size-small); font-weight: normal; color: var(--color-muted); }
+.today-ends { color: var(--color-near); font-weight: var(--weight-semibold); }
+.today-empty { margin: var(--space-5) var(--space-2); text-align: center; color: var(--color-muted); }
+.today-footer { padding: var(--space-2) var(--space-4); border-top: var(--border); background: var(--color-subtle); }

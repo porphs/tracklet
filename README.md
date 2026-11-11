@@ -4,6 +4,11 @@ A personal, offline task tracker for macOS: boards with columns and cards, a Gan
 timeline, and a month calendar, all over the same local data. One user, no accounts, no sync,
 no server.
 
+**Menu bar.** Tracklet adds an icon to the macOS menu bar. Click it to see today's tasks: open
+tasks whose planned start–end dates include today, grouped by board. Click a task to open it in
+the main window. Right-click the icon for Open / Quit. Closing the main window only hides it, so
+the icon keeps working; ⌘Q quits.
+
 - Product brief: [docs/idea.md](docs/idea.md)
 - Spec and acceptance criteria: [docs/mvp-spec.md](docs/mvp-spec.md)
 - Glossary: [CONTEXT.md](CONTEXT.md)

@@ -678,6 +678,11 @@ export class Repository {
       .map(toTask);
   }
 
+  /** Every column on every board. */
+  listAllColumns(): Column[] {
+    return this.sql.all<Row>("SELECT * FROM board_column ORDER BY board_id, position").map(toColumn);
+  }
+
   /** Ids of every column marked as done (across all boards). */
   doneColumnIds(): Set<string> {
     return new Set(
